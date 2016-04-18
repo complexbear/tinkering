@@ -11,14 +11,12 @@
 
 #include "Attribute.h"
 #include <iostream>
+#include <vector>
+
 
 struct Bond
 {
     Bond()
-    :   attributes({
-            ExpiryAttribute(20160101),
-            MSymbolAttribute("US912345678")
-        })
     {}
     
     ATTR_BEGIN()

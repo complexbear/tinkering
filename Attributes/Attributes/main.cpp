@@ -9,18 +9,14 @@
 #include <iostream>
 #include "Instruments.h"
 
-using namespace std;
-
-
-
 int main(int argc, const char * argv[]) {
 
     Swap s;
     Bond b;
 
-    cout << s << endl;
+    std::cout << s << std::endl;
     
-    auto& a = std::get<0>(b.attributes);
+    auto& a = get<ExpiryAttribute>(b.attributes);
     print(a);
 
     a.value = 20160414;
@@ -29,13 +25,13 @@ int main(int argc, const char * argv[]) {
     auto a2 = std::get<0>(b.attributes);
     print(a2);
     
-    // Get by type
-    auto aa = std::get<MSymbolAttribute>(b.attributes);
-    cout << aa.name << ", " << aa.type << ", " << aa.value << endl;
+    std::vector<Variant> vars;
+    extract(b.attributes, vars);
     
-    // Number of attr
-    size_t l = std::tuple_size<decltype(b.attributes)>();
-    cout << "Num of bond attr: " << l << endl;
+    std::cout << "Extracted" << std::endl;
+    for(const auto& v : vars) {
+        std::cout << v << std::endl;
+    }
     
 //    auto aaa = std::get<int>(b.attributes);  compile error
 //    std::string xxx = a.value;               compile error
