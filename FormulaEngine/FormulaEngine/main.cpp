@@ -45,10 +45,8 @@ struct StdVisitor
     }
 };
 
-template<typename Visitor, typename TypeList>
-struct PickyVisitor :
-public boost::static_visitor<tree>,
-public Visitor
+struct PassthroughVisitor :
+public boost::static_visitor<tree>
 {
     typedef tree result_type;
     
@@ -69,14 +67,14 @@ public Visitor
     }
 };
 
-struct ModifyingVisitor : PassthroughVisitor
+struct ModifyingVisitor : public PassthroughVisitor
 {
     tree operator()(const tree& t) {
         return boost::apply_visitor(*this, t.expr);
     }
     
     tree operator()(const std::string& s) {
-        return s + ":Carry";
+        return s + ":Field";
     }
 
 };
@@ -85,7 +83,7 @@ struct ModifyingVisitor : PassthroughVisitor
 int main(int argc, const char * argv[]) {
     
     double x = 10;
-    std::string y = "USD";
+    std::string y = "XXX";
     binary_op b('+', x, y);
     unary_op u('-', 2);
     
