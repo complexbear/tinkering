@@ -13,52 +13,56 @@
 #include <iostream>
 #include <vector>
 
+struct Instrument
+{
+    typedef std::tuple<MSymbolAttribute> Attributes;
+    Attributes attributes;
+};
 
-struct Bond
+struct Bond : Instrument
 {
     Bond()
     {}
     
-    ATTR_BEGIN()
-        ExpiryAttribute,
-        MSymbolAttribute
-    ATTR_END()
+//    ATTR_BEGIN()
+//        ExpiryAttribute
+//    ATTR_END()
+    
+    typedef typename std::tuple_cat(std::tuple<ExpiryAttribute>, Instrument::Attributes) Attributes;
+    Attributes attributes;
 };
 
 
 struct Leg {
-    TenorAttribute tenor;
+    std::string tenor;
 };
-CREATE_ATTR(PayLeg, Leg, Leg())
-CREATE_ATTR(RecLeg, Leg, Leg())
 
 struct Swap
 {
     Swap()
-    : payLeg({TenorAttribute("1y")}),
-      recLeg({TenorAttribute("5y")})
+    : payLeg({"1y"}),
+      recLeg({"5y"})
     {}
     
     ExpiryAttribute expiry;
-    MSymbolAttribute msymbol;
-    PayLegAttribute payLeg;
-    RecLegAttribute recLeg;
+    Leg payLeg;
+    Leg recLeg;
 };
+
+std::ostream& operator<<(std::ostream& o, const Leg& l)
+{
+    o << l.tenor;
+    return o;
+}
 
 std::ostream& operator<<(std::ostream& o, const Swap& s)
 {
     o << "Swap" << std::endl;
     print(s.expiry);
-    print(s.msymbol);
-    print(s.payLeg);
-    print(s.recLeg);
+    o << s.payLeg << ", " << s.recLeg;
     return o;
 }
 
-std::ostream& operator<<(std::ostream& o, const Leg& l)
-{
-    o << l.tenor.name << "," << l.tenor.value;
-    return o;
-}
+
 
 #endif /* Instruments_h */
