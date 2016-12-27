@@ -6,7 +6,7 @@ Created on 12 Dec 2016
 import logging
 from collections import namedtuple
 
-GRAMMAR = ('F', 'f', '-', '+', '[', ']', 'n', 'm')
+GRAMMAR = ('F', 'f', '-', '+', '[', ']', 'n', 'm', ' ')
 
 Node = namedtuple('Node', 'data')
 
@@ -19,23 +19,30 @@ Program = namedtuple('Program', 'scale angle initiator rules')
 class EdgeGenerate(object):
     logger = logging.getLogger('EdgeGenerate')
 
-    def _applyRule(self, rule, doc):
+    def _applyRules(self, rules, doc):
         newDoc = ''
-        keyLen = len(rule.key)
-        for idx in range(0, len(doc)):
-            elem = doc[idx:idx + keyLen]
-            if elem == rule.key:
-                newDoc += rule.generator
-            else:
+        idx = 0
+        while idx < len(doc):
+            ruleMatched = False
+            for rule in rules:
+                keyLen = len(rule.key)
+                elem = doc[idx:idx + keyLen]
+                if elem == rule.key:
+                    newDoc += rule.generator
+                    idx += keyLen
+                    ruleMatched = True
+                    break
+            if not ruleMatched:
                 newDoc += doc[idx]
+                idx += 1
         return newDoc
 
     def __call__(self, program, generations):
         doc = program.initiator
+        self.logger.debug('generation %s: %s' % (0, doc))
         for n in range(generations):
-            self.logger.info('generation %s' %n)
-            for r in program.rules:
-                doc = self._applyRule(r, doc)
+            doc = self._applyRules(program.rules, doc)
+            self.logger.debug('generation %s: %s' %(n+1, doc))
         self.logger.debug('Doc: %s' %doc)
         return doc
 

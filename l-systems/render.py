@@ -20,7 +20,9 @@ class Action(object):
                          '+': self.right}
 
     def __call__(self, action):
-        self._actions[action]()
+        func = self._actions.get(action)
+        if func:
+            func()
 
     def fwd(self):
         self.turtle.forward(self.steps)
@@ -45,7 +47,7 @@ class Action(object):
 class TurtleContext(object):
     def __enter__(self):
         turtle.tracer(0, 0)
-    def __exit__(self, *args, **kwargs):
+    def __exit__(self, type, value, traceback):
         turtle.update()
 
 
