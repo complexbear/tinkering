@@ -9,7 +9,11 @@ from collections import namedtuple
 
 from model import Node
 
+turtle.mode('logo')
+
 class Action(object):
+    State = namedtuple('State', 'position heading')
+
     def __init__(self, turtle, steps, angle):
         self.turtle = turtle
         self.steps = steps
@@ -17,7 +21,11 @@ class Action(object):
         self._actions = {'F': self.fwd,
                          'f': self.hop,
                          '-': self.left,
-                         '+': self.right}
+                         '+': self.right,
+                         '[': self.pushState,
+                         ']': self.popState}
+        self.state = []
+        self.goto(0, -400)
 
     def __call__(self, action):
         func = self._actions.get(action)
@@ -43,6 +51,15 @@ class Action(object):
         self.turtle.setpos(x,y)
         self.turtle.down()
 
+    def pushState(self):
+        s = self.State(self.turtle.position(), self.turtle.heading())
+        self.state.append(s)
+
+    def popState(self):
+        s = self.state.pop()
+        self.goto(*s.position)
+        self.turtle.setheading(s.heading)
+
 
 class TurtleContext(object):
     def __enter__(self):
@@ -58,8 +75,7 @@ class PlainRenderer(object):
 
     def reset(self):
         self.scr.clear()
-        self.turtle.reset()
-        self.turtle.speed(0)
+        turtle.hideturtle()
 
     def draw(self, doc, steps, angle):
         self.reset()
@@ -85,7 +101,6 @@ class NodeRenderer(PlainRenderer):
         self.reset()
         with TurtleContext():
             action = Action(self.turtle, steps, angle)
-
             for elem in root.data:
                 if type(elem) == Node:
                     self._drawNode(action, elem)
