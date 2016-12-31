@@ -11,6 +11,8 @@ from model import Node
 
 turtle.mode('logo')
 
+START_OFFSET = 0
+
 class Action(object):
     State = namedtuple('State', 'position heading')
 
@@ -25,7 +27,7 @@ class Action(object):
                          '[': self.pushState,
                          ']': self.popState}
         self.state = []
-        self.goto(0, -400)
+        self.goto(0, START_OFFSET)
 
     def __call__(self, action):
         func = self._actions.get(action)

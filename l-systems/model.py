@@ -5,14 +5,57 @@ Created on 12 Dec 2016
 '''
 import logging
 from collections import namedtuple
+import random
+
+#random.seed(0)
 
 GRAMMAR = ('F', 'f', '-', '+', '[', ']', 'n', 'm', ' ')
 
 Node = namedtuple('Node', 'data')
 
-Rule = namedtuple('Rule', 'key generator')
-
 Program = namedtuple('Program', 'scale angle initiator rules')
+
+class Rule(object):
+    def __init__(self, key, generator):
+        self.key = key
+        self.generator = generator
+        self.keyLen = len(self.key)
+
+    def apply(self, doc):
+        elem = doc[:self.keyLen]
+        if elem == self.key:
+            return self.keyLen, self.generator
+        return 0, ''
+
+
+class StochasticRule(object):
+    Generator = namedtuple('Generator', 'weight pattern')
+    def __init__(self, key, generators):
+        self.key = key
+        self.generators = [self.Generator(*g) for g in generators]
+        self.keyLen = len(key)
+        # Map weights to boundaries between 0->1
+        counter = 0
+        self.weightBoundaries = []
+        for w in map(lambda g: g.weight, self.generators):
+            counter += w
+            self.weightBoundaries.append(counter)
+
+    def apply(self, doc):
+        elem = doc[:self.keyLen]
+        if elem == self.key:
+            # pick sub-rule based on weights
+            subRule = self.generators[0]
+            randomPick = random.random()
+            for idx, wb in enumerate(self.weightBoundaries):
+                if randomPick <= wb:
+                    subRule = self.generators[idx]
+                    break
+            return self.keyLen, subRule.pattern
+        return 0, ''
+
+
+
 
 
 
@@ -25,13 +68,11 @@ class EdgeGenerate(object):
         while idx < len(doc):
             ruleMatched = False
             for rule in rules:
-                keyLen = len(rule.key)
-                elem = doc[idx:idx + keyLen]
-                if elem == rule.key:
-                    newDoc += rule.generator
-                    idx += keyLen
+                consumed, ruleDoc = rule.apply(doc[idx:])
+                if consumed:
+                    idx += consumed
                     ruleMatched = True
-                    break
+                    newDoc += ruleDoc
             if not ruleMatched:
                 newDoc += doc[idx]
                 idx += 1

@@ -6,7 +6,7 @@ Created on 12 Dec 2016
 import logging
 from optparse import OptionParser
 
-from model import Program, Rule, EdgeGenerate, NodeGenerate
+from model import Program, Rule, StochasticRule, EdgeGenerate, NodeGenerate
 import render
 
 Koch_1 = Program(4, 90, 'F-F-F-F', [Rule('F', 'F-F+F+FF-F-F+F')] )
@@ -26,6 +26,10 @@ Plant_1 = Program(5, 25.7, 'F', [Rule('F', 'F[+F]F[-F]F')])
 Plant_2 = Program(5, 22.5, 'n', [Rule('n', 'F-[[n]+n]+F[+Fn]-n'),
                                  Rule('F', 'FF')])
 
+StochPlant_1 = Program(5, 25.7, 'F', [StochasticRule('F', [(0.33, 'F[+F]F[-F]F'),
+                                                           (0.33, 'F[+F]F'),
+                                                           (0.33, 'F[-F]F')])])
+
 
 def main():
     logging.basicConfig()
@@ -36,11 +40,15 @@ def main():
     parser.add_option('-n', dest='name')
     parser.add_option('-g', dest='generations', type='int', default=1)
     parser.add_option('-s', dest='size', type='int', default=50)
+    parser.add_option('--offset', dest='offset', type='int', default=0)
     parser.add_option('-v', dest='verbose', action='store_true', default=False)
 
     opts, _ = parser.parse_args()
     if opts.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
+
+    if opts.offset:
+        render.START_OFFSET = opts.offset
 
     program = globals()[opts.name]
 
@@ -53,10 +61,13 @@ def main():
         gen = NodeGenerate()
         renderer = render.NodeRenderer()
 
-    doc = gen(program, opts.generations)
-    renderer.draw(doc, steps, program.angle)
-
+    while True:
+        key = raw_input('Press return to generate, anything else to exit')
+        if key == '':
+            doc = gen(program, opts.generations)
+            renderer.draw(doc, steps, program.angle)
+        else:
+            break
 
 if __name__ == '__main__':
     main()
-    raw_input('any key to exit')
