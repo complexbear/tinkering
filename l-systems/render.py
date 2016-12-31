@@ -13,13 +13,16 @@ turtle.mode('logo')
 
 START_OFFSET = 0
 
+WIND = 0
+
 class Action(object):
     State = namedtuple('State', 'position heading')
 
     def __init__(self, turtle, steps, angle):
         self.turtle = turtle
         self.steps = steps
-        self.angle = angle
+        self.leftAngle = angle
+        self.rightAngle = angle
         self._actions = {'F': self.fwd,
                          'f': self.hop,
                          '-': self.left,
@@ -34,6 +37,10 @@ class Action(object):
         if func:
             func()
 
+    def windy(self, force):
+        self.leftAngle -= force * 0.5
+        self.rightAngle += force * 0.5
+
     def fwd(self):
         self.turtle.forward(self.steps)
 
@@ -43,10 +50,10 @@ class Action(object):
         self.turtle.down()
 
     def left(self):
-        self.turtle.left(self.angle)
+        self.turtle.left(self.leftAngle)
 
     def right(self):
-        self.turtle.right(self.angle)
+        self.turtle.right(self.rightAngle)
 
     def goto(self, x, y):
         self.turtle.up()
@@ -79,11 +86,16 @@ class PlainRenderer(object):
         self.scr.clear()
         turtle.hideturtle()
 
-    def draw(self, doc, steps, angle):
+    def draw(self, doc, steps, angle, wind=0):
         self.reset()
         with TurtleContext():
             action = Action(self.turtle, steps, angle)
-            [action(elem) for elem in doc]
+            if wind:
+                action.windy(wind)
+            self._elemDraw(action, doc)
+
+    def _elemDraw(self, action, doc):
+        [action(elem) for elem in doc]
 
 
 
@@ -99,15 +111,12 @@ class NodeRenderer(PlainRenderer):
             else:
                 action(elem)
 
-    def draw(self, root, steps, angle):
-        self.reset()
-        with TurtleContext():
-            action = Action(self.turtle, steps, angle)
-            for elem in root.data:
-                if type(elem) == Node:
-                    self._drawNode(action, elem)
-                else:
-                    action(elem)
+    def _elemDraw(self, action, root):
+        for elem in root.data:
+            if type(elem) == Node:
+                self._drawNode(action, elem)
+            else:
+                action(elem)
 
 
 
