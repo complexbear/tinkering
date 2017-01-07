@@ -16,7 +16,7 @@ START_OFFSET = 0
 WIND = 0
 
 class Action(object):
-    State = namedtuple('State', 'position heading')
+    State = namedtuple('State', 'position heading width')
 
     def __init__(self, turtle, steps, angle):
         self.turtle = turtle
@@ -31,6 +31,8 @@ class Action(object):
                          ']': self.popState}
         self.state = []
         self.goto(0, START_OFFSET)
+        self.pensize = 3
+        self.turtle.pensize(self.pensize)
 
     def __call__(self, action):
         func = self._actions.get(action)
@@ -61,13 +63,18 @@ class Action(object):
         self.turtle.down()
 
     def pushState(self):
-        s = self.State(self.turtle.position(), self.turtle.heading())
+        s = self.State(self.turtle.position(), self.turtle.heading(), self.turtle.pensize())
         self.state.append(s)
 
     def popState(self):
         s = self.state.pop()
         self.goto(*s.position)
         self.turtle.setheading(s.heading)
+        self.turtle.pensize(s.width)
+
+    def width(self, generation):
+        size = self.pensize * (1.0/generation)
+        self.turtle.pensize(max(0.1, size))
 
 
 class TurtleContext(object):
@@ -102,10 +109,10 @@ class PlainRenderer(object):
 class NodeRenderer(PlainRenderer):
     logger = logging.getLogger('NodeRenderer')
 
-    Node = namedtuple('Node', 'x y')
-
     def _drawNode(self, action, node):
+        self.logger.debug('node generation: %s' %node.generation)
         for elem in node.data:
+            action.width(node.generation)
             if type(elem) == Node:
                 self._drawNode(action, elem)
             else:
@@ -113,6 +120,7 @@ class NodeRenderer(PlainRenderer):
 
     def _elemDraw(self, action, root):
         for elem in root.data:
+            action.width(root.generation)
             if type(elem) == Node:
                 self._drawNode(action, elem)
             else:
