@@ -3,24 +3,40 @@
 
 using namespace std;
 
+std::pair<int, int> largestDistPair(const string s) {
+	// Find pair the furthest apart
+	size_t dist = 0;
+	size_t idx = 0;
+	int start;
+
+	while(idx < s.size()) {
+		auto pos = s.substr(idx).find_last_of(s[idx]);
+		if(pos != string::npos && pos > dist) {
+			dist = pos;
+			start = idx;
+			if(dist >= (s.size()-idx))
+				break;
+		}
+		++idx;
+	}
+
+	return make_pair(start, dist);
+}
+
 int search(int n, string s) {
     int pLen = 0;
-    string pStr;
-
     while(s.size()) {
-        char ch = s[0];
-        size_t dupPos = s.find_last_of(ch, n);
-
-        if(dupPos == 0) {
-            s = s.substr(1);
-        }
-        else {
-            pLen += 2;
-            // recurse.... by stepping +n places forwards until
-            // a better matching pair is found
-            s = s.substr(1, dupPos-1);
-        }
         
+    	auto startDist = largestDistPair(s);
+    	if(startDist.first == 0 && startDist.second == 0) {
+    		// no pairs in string
+    		s = s.substr(1);
+    	} else {
+    		// +2 to count
+    		pLen += 2;
+    		s = s.substr(startDist.first+1, startDist.second-1);
+    	}
+
         if(s.size() == 1) {
             pLen += 1;
             break;
@@ -32,16 +48,9 @@ int search(int n, string s) {
 
 
 int longestPalindrome(int n, string s) {
-    if(n == 1) return 1;
+    if(n == 1 || n == 2) return 1;
 
-    int pLen = 0;
-    while(s.size() < pLen) {
-        int l = search(s.size(), s);
-        pLen = max(pLen, l);
-
-        s = s.substr(1);
-    }
-    return pLen;
+    return search(n, s);
 }
 
 void test(string s, int expected) {
@@ -61,7 +70,7 @@ int main(int c, const char* argv[]) {
         test("kxyqvnrtys", 3);
         test("xyziiyiiz", 7);
         test("xyzziiyiiz", 7);
-        test("frzrmzlygfveulqfpdbhlqdqrrcrwdnxeuoqqeklaitgdphcspijthbsfyfvladzpbfudkklrwqaozmixrpifeffeclhbvfukbye", 31)
+        test("frzrmzlygfveulqfpdbhlqdqrrcrwdnxeuoqqeklaitgdphcspijthbsfyfvladzpbfudkklrwqaozmixrpifeffeclhbvfukbye", 31);
         return 0;
     }
 
