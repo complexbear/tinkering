@@ -3,54 +3,59 @@
 
 using namespace std;
 
-std::pair<int, int> largestDistPair(const string s) {
-	// Find pair the furthest apart
-	size_t dist = 0;
-	size_t idx = 0;
-	int start;
-
-	while(idx < s.size()) {
-		auto pos = s.substr(idx).find_last_of(s[idx]);
-		if(pos != string::npos && pos > dist) {
-			dist = pos;
-			start = idx;
-			if(dist >= (s.size()-idx))
-				break;
-		}
-		++idx;
-	}
-
-	return make_pair(start, dist);
-}
-
-int search(int n, string s) {
-    int pLen = 0;
-    while(s.size()) {
-        
-    	auto startDist = largestDistPair(s);
-    	if(startDist.first == 0 && startDist.second == 0) {
-    		// no pairs in string
-    		s = s.substr(1);
-    	} else {
-    		// +2 to count
-    		pLen += 2;
-    		s = s.substr(startDist.first+1, startDist.second-1);
-    	}
-
-        if(s.size() == 1) {
-            pLen += 1;
-            break;
-        }
-        
-    }
-    return pLen;
-}
 
 
 int longestPalindrome(int n, string s) {
-    if(n == 1 || n == 2) return 1;
+	string r(s.rbegin(), s.rend());
+	int pLen = 0;
 
-    return search(n, s);
+	if(s.size() == 1 || s.size() == 2) return 1;
+
+	// Find pair with shortest dist between s and r
+	while(s.size() && r.size()) {
+
+		cout << "--------------" << endl;
+		cout << s << endl;
+		cout << r << endl;
+
+		if(s.size() == 1 && r.size() == 1) {
+			pLen += 1;
+			break;
+		}
+
+		if(s[0] == r[0]) {
+			pLen += 2;
+			s = s.substr(1, s.size()-2);
+			r = r.substr(1, r.size()-2);
+		} else {
+
+			cout << "sIdx: " << s[0] << ", rIdx: " << r[0] << endl;
+			size_t sDist = r.find_first_of(s[0]);
+			size_t rDist = s.find_first_of(r[0]);
+
+			cout << "sDist: " << sDist << ", rDist: " << rDist << endl;
+
+			if(sDist == r.size()-1) {
+				// First char of s has no match
+				s = s.substr(1);
+				r = r.substr(0, r.size()-1);
+			} else if(rDist == s.size()-1) {
+				// First char of r has no match
+				r = r.substr(1);
+				s = s.substr(0, s.size()-1);
+			} else if (rDist < sDist) {
+				//
+				s = s.substr(rDist);
+				r = r.substr(0, r.size()-sDist);
+			} else {
+				r = r.substr(sDist);
+				s = s.substr(0, s.size()-sDist);
+			}
+		}
+
+	}
+
+	return pLen;
 }
 
 void test(string s, int expected) {
