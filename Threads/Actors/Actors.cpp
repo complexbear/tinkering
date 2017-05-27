@@ -8,7 +8,7 @@
 
 int main() {
 
-	std::cout<< "Main thread " << std::this_thread::get_id() << std::endl;
+	std::cout << "Main thread " << std::this_thread::get_id() << std::endl;
 	{
 		Actor a;
 		a.ping();

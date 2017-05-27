@@ -3,5 +3,8 @@
 *.project
 *.idea*
 *.pyc
+*.sln
+*.vcxproj*
+*.vs*
 Debug
 Release

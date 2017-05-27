@@ -7,6 +7,8 @@
 #include <atomic>
 #include <mutex>
 #include <vector>
+#include <string>
+#include <sstream>
 
 using namespace std;
 
@@ -29,9 +31,13 @@ struct Node
 	atomic_int inUse;
 };
 
+struct Config
+{
+	int level;
+	stringstream os;
+};
 
-
-void visit(Node* n, int level)
+void visitNode(Config& cfg, Node* n)
 {
 	{
 		lock_guard<mutex> lk(go);
@@ -40,20 +46,20 @@ void visit(Node* n, int level)
 	if(n == nullptr) return;
 
 	// This node has already been visited
-	if(n->level >= level) return;
+	if(n->level >= cfg.level) return;
 
 	// Wait for our turn on the node in level order
 	int l = n->level;
-	while(! n->level.compare_exchange_weak(l, level))
+	while(! n->level.compare_exchange_weak(l, cfg.level))
 	{}
 
-	cout << "ID:" << this_thread::get_id() << ", Level " << level <<", val = " << n->val << endl;
-	n->level = level;
+	cfg.os << "ID:" << this_thread::get_id() << ", Level " << cfg.level << ", val = " << n->val << endl;
+	n->level = cfg.level;
 	n->val += string("x");
 
 	for(auto child : n->children)
 	{
-		visit(child, level);
+		visitNode(cfg, child);
 	}
 
 }
@@ -82,13 +88,18 @@ int main() {
 	F->children.push_back(A);
 	E->children.push_back(D);
 
+	Config c1 = { 1 };
+	Config c2 = { 2 };
+
 	go.lock();
-	std::thread t1(visit, A, 1);
-	std::thread t2(visit, A, 2);
+	std::thread t1(visitNode, ref(c1), A);
+	std::thread t2(visitNode, ref(c2), A);
 	go.unlock();
 
 	t1.join();
 	t2.join();
 
+	cout << c1.os.str() << endl;
+	cout << c2.os.str() << endl;
 	return 0;
 }
