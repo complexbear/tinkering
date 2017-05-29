@@ -7,16 +7,40 @@
 
 #include "Actor.h"
 #include <catch.hpp>
-#include <chrono>
-#include <thread>
+#include <string>
 
-using namespace std;
+
+class Counter : public Actor<int>
+{
+public:
+	Actor::FutureResult count()
+	{
+		return execute([=]() {
+			return ++counter_;
+		});
+	}
+private:
+	int counter_ = 0;
+};
+
+class Printer : public Actor<std::string>
+{
+public:
+	Actor::FutureResult print(int i)
+	{
+		return execute([=]() {
+			return std::to_string(i);
+		});
+	}
+};
+
 
 TEST_CASE("Single actor", "[actor]") 
 {
-	Actor a;
-	auto f1 = a.ping();
-	auto f2 = a.ping();
+
+	Counter a;
+	auto f1 = a.count();
+	auto f2 = a.count();
 	f1.wait();
 	f2.wait();
 	REQUIRE(f2.get() == 2);
@@ -25,13 +49,13 @@ TEST_CASE("Single actor", "[actor]")
 
 TEST_CASE("Multi actor", "[actor]")
 {
-	Actor a, b;
+	Counter a, b;
 
-	future<int> countA, countB;
+	std::future<int> countA, countB;
 	for (size_t i = 0; i < 10; ++i)
 	{
-		countA = a.ping();
-		countB = b.ping();
+		countA = a.count();
+		countB = b.count();
 	}
 	countA.wait();
 	countB.wait();
@@ -40,9 +64,16 @@ TEST_CASE("Multi actor", "[actor]")
 
 TEST_CASE("User stop", "[actor]")
 {
-	Actor a;
-	for (size_t i = 0; i < 5; ++i)
-		a.ping();
+	Printer a;
+	std::vector<Printer::FutureResult> results;
+	for (int i = 0; i < 5; ++i)
+		results.push_back(a.print(i));
+
+	for (auto& r : results)
+	{
+		r.wait();
+		std::cout << r.get() << std::endl;
+	}
 
 	auto stopper = a.stop();
 	stopper.wait();
