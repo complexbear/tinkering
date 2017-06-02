@@ -1,17 +1,23 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>L-Systems</title>
     <script type="text/javascript" src="js/render.js"></script>
+    <script type="text/javascript" src="js/client.js"></script>
+    <script type="text/javascript" src="js/three.js"></script>
 </head>
 <body>
 
-<textarea id="lsystem" rows="5" cols="80">Paste l-system document in here</textarea>
-<input type="button" onclick="render()" value="Render!"/>
+    <textarea id="lsystem_rule" rows="1" cols="80">Enter l-system rule</textarea>
+    <textarea id="lsystem_generations" rows="1" cols="8">2</textarea></br>
+    <input type="button" onclick="GenerateDocument()" value="Run rule" /></br>
+    <textarea id="lsystem_document" rows="5" cols="80">Paste l-system document in here</textarea></br>
 
-<div>
-<canvas id="canvas" height="500" width="500" style="border:1px solid #000000;"/>
-</div>
+    <input type="button" onclick="LSystemRender()" value="Render!"/>
+
+    <div id="renderArea" height="500" width="500">
+    <canvas id="canvas" height="500" width="500" style="border:1px solid #000000;"/>
+    </div>
 </body>
 </html>
