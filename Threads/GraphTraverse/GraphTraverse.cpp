@@ -12,54 +12,66 @@
 
 using namespace std;
 
-mutex go;
+
+void log(const string& s) {
+	static mutex l;
+	lock_guard<mutex> lock(l);
+	
+	cout << s << endl;
+}
+
+#define LOG(msg) \
+	stringstream os; \
+	os << msg; \
+	log(os.str());
 
 struct Node;
 
 struct Node
 {
-	Node() : val(0), level(-1), inUse(-1) {}
+	Node() : val(0), level(-1) {}
 
 	Node(const string& v, const vector<Node*>& ch)
-	: val(v), children(ch), level(-1), inUse(-1)
+	: val(v), children(ch), level(-1)
 	{}
 
 	string val;
 	vector<Node*> children;
 
 	atomic_int level;
-	atomic_int inUse;
+	mutex inUse;
 };
 
 struct Config
 {
 	int level;
-	stringstream os;
 };
 
-void visitNode(Config& cfg, Node* n)
+void visitNode(int level, Node* n)
 {
-	{
-		lock_guard<mutex> lk(go);
-	}
-
 	if(n == nullptr) return;
 
 	// This node has already been visited
-	if(n->level >= cfg.level) return;
+	if(n->level >= level) return;
 
 	// Wait for our turn on the node in level order
 	int l = n->level;
-	while(! n->level.compare_exchange_weak(l, cfg.level))
+	while(! n->level.compare_exchange_weak(l, level))
 	{}
 
-	cfg.os << "ID:" << this_thread::get_id() << ", Level " << cfg.level << ", val = " << n->val << endl;
-	n->level = cfg.level;
-	n->val += string("x");
+	// Now wait for excusive access to the node from other traversing threads at this level
+	{
+		lock_guard<mutex> lock(n->inUse);
+		LOG("ID:" << this_thread::get_id() << ", Level " << level << ", val = " << n->val);
 
+		n->level = level;
+		n->val += string("x");
+	}
+
+	// Visit connected nodes
 	for(auto child : n->children)
 	{
-		visitNode(cfg, child);
+		visitNode(level, child);
 	}
 
 }
@@ -72,8 +84,8 @@ int main() {
 	 *       A
 	 *       |
 	 *   B - C - D
-	 *   |   |   |
-	 *   E   E   F
+	 *   \   |   |
+	 *    ---E   F
 	 *       |   |
 	 *       D   A
 	 */
@@ -87,19 +99,12 @@ int main() {
 
 	F->children.push_back(A);
 	E->children.push_back(D);
-
-	Config c1 = { 1 };
-	Config c2 = { 2 };
-
-	go.lock();
-	std::thread t1(visitNode, ref(c1), A);
-	std::thread t2(visitNode, ref(c2), A);
-	go.unlock();
-
-	t1.join();
+	
+	std::thread t1(visitNode, 1, A);
+	std::thread t2(visitNode, 2, A);
+	
+	t1.join(); 
 	t2.join();
 
-	cout << c1.os.str() << endl;
-	cout << c2.os.str() << endl;
 	return 0;
 }
