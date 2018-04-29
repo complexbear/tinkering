@@ -19,9 +19,10 @@ class RequestHandler(SimpleHTTPRequestHandler):
                 rule = json.loads(requestData)
                 generations = int(rule['generations'])
                 rule = model.Program(generations, 25.7, 'F', [model.Rule('F', rule['rule'])])
-                gen = model.NodeGenerate()
+                gen = model.EdgeGenerate()
                 doc = gen(rule, generations)
 
+                doc = json.dumps({'doc':doc})
                 self.wfile.write(doc)
                 return
             else:

@@ -10,8 +10,9 @@ GenerateDocument = function () {
     var req = new XMLHttpRequest();
     req.onload = function (response) {
         data = response.currentTarget.response;
+        data = JSON.parse(data)
         console.log(data);
-        doc.textContent = data;
+        doc.textContent = data['doc'];
     };
 
     req.open('POST', 'http://localhost:8080/api', true);

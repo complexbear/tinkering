@@ -11,7 +11,14 @@
 typedef std::vector<std::vector<char>> BBoard;
 typedef std::vector<std::vector<bool>> Visited;
 
-std::set<std::string> find(const BBoard& board, Visited& visited, const int rpos, const int cpos, Node* n, std::string s = std::string())
+size_t counter = 0;
+
+std::set<std::string> find( const BBoard& board, 
+						    Visited& visited, 
+							const int rpos, 
+							const int cpos, 
+							Node* n, 
+							std::string s = std::string()) 
 {
 	const int maxRows = board.size(),
 			  maxCols = board[0].size();
@@ -21,10 +28,11 @@ std::set<std::string> find(const BBoard& board, Visited& visited, const int rpos
 	visited[rpos][cpos] = true;
 	
 	// Is this board cell in the dict?
-	if (n->val == board[rpos][cpos])
+	const char c = board[rpos][cpos];
+	if (n->val == c)
 	{
-		std::cout << "found " << s << "+" << board[rpos][cpos] << std::endl;
-		s += board[rpos][cpos];
+		std::cout << "found " << s << "+" << c << std::endl;
+		s += c;
 		if (n->marker) foundStrings.insert(s);
 	}
 
@@ -35,6 +43,7 @@ std::set<std::string> find(const BBoard& board, Visited& visited, const int rpos
 		{
 			if(r>=0 && c>=0 && !visited[r][c])
 			{
+				counter++;
 				Node* next = n->get(board[r][c]);
 				if (next)
 				{
@@ -50,11 +59,9 @@ std::set<std::string> find(const BBoard& board, Visited& visited, const int rpos
 std::set<std::string> findWords(const BBoard& board, const Trie& dict)
 {
 	std::set<std::string> results;
-	
-	// When moving to a neighbour cell, append it to the parent cell to build words
 	for (size_t r = 0; r < board.size(); ++r)
 	{
-		for (size_t c = 0; c < board.size(); ++c)
+		for (size_t c = 0; c < board[0].size(); ++c)
 		{
 			Visited visited;
 			for (size_t i = 0; i < board.size(); ++i)
@@ -63,7 +70,6 @@ std::set<std::string> findWords(const BBoard& board, const Trie& dict)
 			Node* start = dict.root->get(board[r][c]);
 			if (start)
 			{
-				std::string s;
 				auto strings = find(board, visited, r, c, start);
 				results.insert(strings.begin(), strings.end());
 			}			
@@ -78,7 +84,8 @@ int main()
 	BBoard board{
 		{'G', 'I', 'P'},
 		{'O', 'T', 'E'},
-		{'O', 'G', 'L'}
+		{'O', 'G', 'L'},
+		{'P', 'X', 'T'}
 	};
 	
 	// Dictionary
@@ -100,6 +107,8 @@ int main()
 	std::cout << "Searching boggle board..." << std::endl;
 	for (const auto& r : findWords(board, t))
 		std::cout << r << std::endl;
+
+	std::cout << "Number of cells tested " << counter << std::endl;
 
     return 0;
 }

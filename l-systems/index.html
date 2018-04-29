@@ -3,16 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <title>L-Systems</title>
+    <script type="text/javascript" src="js/three.js"></script>
     <script type="text/javascript" src="js/render.js"></script>
     <script type="text/javascript" src="js/client.js"></script>
-    <script type="text/javascript" src="js/three.js"></script>
+    <script type="text/javascript" src="js/lsystem.js"></script>
 </head>
 <body>
 
-    <textarea id="lsystem_rule" rows="1" cols="80">Enter l-system rule</textarea>
+    <p>Enter L-System rule</p>
+    <textarea id="lsystem_rule" rows="1" cols="80">FF</textarea></br>
     <textarea id="lsystem_generations" rows="1" cols="8">2</textarea></br>
     <input type="button" onclick="GenerateDocument()" value="Run rule" /></br>
-    <textarea id="lsystem_document" rows="5" cols="80">Paste l-system document in here</textarea></br>
+    <textarea id="lsystem_document" rows="5" cols="80">or paste l-system document in here</textarea></br>
 
     <input type="button" onclick="LSystemRender()" value="Render!"/>
 
