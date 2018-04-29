@@ -2,121 +2,104 @@
 // Given a Boggle board and a dictionary of words, find all possible words on the board
 //
 
-// TODO - add gtest 
 #include <iostream>
-#include <functional>
 #include <set>
 #include <vector>
 
-// Convet the dictionary into a Trie structure that we can search
-struct Node
-{
-	Node() : val(' '), marker(false) {}
-	Node* add(char c) 
-	{ 
-		Node* n = new Node;
-		n->val = c;
-		children.push_back(n); 
-		return n;
-	}
-	Node* get(char c)
-	{
-		if (val == c) 
-			return this;
-		for (const auto& n : children)
-			if (n && n->val == c) return n;
-		return nullptr;
-	}
+#include "Trie.h"
 
-	char val;
-	bool marker;
-	std::vector<Node*> children;
-};
-
-struct Trie
-{
-	Trie() : root(new Node) {}
-
-	~Trie() 
-	{
-		// Delete nodes recursively
-		std::function<void(Node*)> deleteNode = [&deleteNode](Node* n) {
-			for (Node* c : n->children)
-				deleteNode(c);
-			delete n;
-		};
-
-		deleteNode(root);
-	}
-
-	void addString(const std::string& s)
-	{
-		Node* n = root;
-		for (const char c : s)
-		{
-			Node* next = n->get(c);
-			if (next == nullptr)
-				next = n->add(c);
-			n = next;
-		}
-		n->marker = true;
-	}
-
-	bool search(const std::string& s)
-	{
-		Node* n = root;
-		for (const char c : s)
-		{
-			n = n->get(c);
-			if (n == nullptr) break;
-		}
-		return (n && n->marker);
-	}
-
-	Node* root;
-};
-
-typedef std::set<std::string> Dictionary;
 typedef std::vector<std::vector<char>> BBoard;
+typedef std::vector<std::vector<bool>> Visited;
 
-
-
-
-std::vector<std::string> findWords(const BBoard& board, const Dictionary& dict)
+std::set<std::string> find(const BBoard& board, Visited& visited, const int rpos, const int cpos, Node* n, std::string s = std::string())
 {
-	std::vector<std::string> results;
+	const int maxRows = board.size(),
+			  maxCols = board[0].size();
 
-	// Walk through the board testing each cell as if it is the first letter of a word.
+	std::set<std::string> foundStrings;
 
+	visited[rpos][cpos] = true;
+	
+	// Is this board cell in the dict?
+	if (n->val == board[rpos][cpos])
+	{
+		std::cout << "found " << s << "+" << board[rpos][cpos] << std::endl;
+		s += board[rpos][cpos];
+		if (n->marker) foundStrings.insert(s);
+	}
+
+	// Search neighbouring board cells
+	for (int r = rpos-1; r <= rpos+1 && r<maxRows; ++r)
+	{
+		for (int c = cpos-1; c <= cpos+1 && c<maxCols; ++c)
+		{
+			if(r>=0 && c>=0 && !visited[r][c])
+			{
+				Node* next = n->get(board[r][c]);
+				if (next)
+				{
+					auto moreStr = find(board, visited, r, c, next, s);
+					foundStrings.insert(moreStr.begin(), moreStr.end());
+				}				
+			}
+		}
+	}
+	return foundStrings;
+}
+
+std::set<std::string> findWords(const BBoard& board, const Trie& dict)
+{
+	std::set<std::string> results;
+	
 	// When moving to a neighbour cell, append it to the parent cell to build words
-	
-	
+	for (size_t r = 0; r < board.size(); ++r)
+	{
+		for (size_t c = 0; c < board.size(); ++c)
+		{
+			Visited visited;
+			for (size_t i = 0; i < board.size(); ++i)
+				visited.push_back(std::vector<bool>(board[0].size(), false));
 
-
+			Node* start = dict.root->get(board[r][c]);
+			if (start)
+			{
+				std::string s;
+				auto strings = find(board, visited, r, c, start);
+				results.insert(strings.begin(), strings.end());
+			}			
+		}
+	}
 	return results;
 }
 
+
 int main()
 {
-	Dictionary d{
+	BBoard board{
+		{'G', 'I', 'P'},
+		{'O', 'T', 'E'},
+		{'O', 'G', 'L'}
+	};
+	
+	// Dictionary
+	std::set<std::string> d{
 		"GIT",
 		"GOOGLE",
 		"GOO"
 	};
-
-	BBoard board{
-		{'G', 'I', 'P'},
-		{'O', 'T', 'X'},
-		{'O', 'L', 'E'}
-	};
-
-	// Trie test
+	
+	// Convert dictionary to Trie for better search performance
 	Trie t;
 	for (const auto& w : d) t.addString(w);
 
+	// Trie test
 	std::cout << "Search GOO: " << t.search("GOO") << std::endl;
 	std::cout << "Search GOT: " << t.search("GOT") << std::endl;
 	std::cout << "Search GOOGLE: " << t.search("GOOGLE") << std::endl;
+
+	std::cout << "Searching boggle board..." << std::endl;
+	for (const auto& r : findWords(board, t))
+		std::cout << r << std::endl;
 
     return 0;
 }
