@@ -1,5 +1,9 @@
 // Boggle.cpp
 // Given a Boggle board and a dictionary of words, find all possible words on the board
+// This is an exercise in efficient search for known strings as we travel over a wordspace.
+//
+// Utilises a Trie data structure for tracking known word formation.
+// Problem taken from geekforgeeks.com
 //
 
 #include <iostream>
@@ -8,11 +12,25 @@
 
 #include "Trie.h"
 
+// A matrix containing our boggle board letters
 typedef std::vector<std::vector<char>> BBoard;
-typedef std::vector<std::vector<bool>> Visited;
 
-size_t counter = 0;
+// A mask so we know which cells in the board we have already visited
+typedef std::vector<std::vector<bool>> Visited; 
 
+
+/*
+ * From the starting cell defined by rpos,cpos search the 
+ * surrounding cells to find potential words in the dictionary.
+ *
+ * We avoid considering cells that have already been visited.
+ *
+ * The string s contains the letters we have gathered so far from 
+ * previous calls to this function.
+ *
+ * The Node n represents the current position that we are at in 
+ * the Trie structure which is representing our dictionary.
+ */
 std::set<std::string> find( const BBoard& board, 
 						    Visited& visited, 
 							const int rpos, 
@@ -43,7 +61,6 @@ std::set<std::string> find( const BBoard& board,
 		{
 			if(r>=0 && c>=0 && !visited[r][c])
 			{
-				counter++;
 				Node* next = n->get(board[r][c]);
 				if (next)
 				{
@@ -56,17 +73,26 @@ std::set<std::string> find( const BBoard& board,
 	return foundStrings;
 }
 
+/*
+ * Entry point for searching the board for words that appear in the dictionary.
+ *
+ * We try to find words starting at each cell in the board, and then combine
+ * all the found words together for return.
+ */
 std::set<std::string> findWords(const BBoard& board, const Trie& dict)
 {
+	// A clear bool mask the same size of the board
+	Visited clear_mask;
+	for (size_t i = 0; i < board.size(); ++i)
+		clear_mask.push_back(std::vector<bool>(board[0].size(), false));
+
 	std::set<std::string> results;
 	for (size_t r = 0; r < board.size(); ++r)
 	{
 		for (size_t c = 0; c < board[0].size(); ++c)
 		{
-			Visited visited;
-			for (size_t i = 0; i < board.size(); ++i)
-				visited.push_back(std::vector<bool>(board[0].size(), false));
-
+			// Start with a clear mask
+			Visited visited = clear_mask;
 			Node* start = dict.root->get(board[r][c]);
 			if (start)
 			{
@@ -107,8 +133,6 @@ int main()
 	std::cout << "Searching boggle board..." << std::endl;
 	for (const auto& r : findWords(board, t))
 		std::cout << r << std::endl;
-
-	std::cout << "Number of cells tested " << counter << std::endl;
 
     return 0;
 }
