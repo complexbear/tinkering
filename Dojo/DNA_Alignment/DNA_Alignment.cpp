@@ -8,9 +8,21 @@
 
 
 #include <string>
+#include <sstream>
 #include <iostream>
 #include <algorithm>
 
+template<class T>
+struct Cell
+{
+	Cell() : score(0), prev(nullptr) {}
+	
+	int score;
+	T val;
+	Cell* prev;
+};
+
+typedef Cell<char> CCell;
 
 std::string align(const std::string& s1, std::string& s2)
 {
@@ -24,19 +36,36 @@ std::string align(const std::string& s1, std::string& s2)
 	  |  T  |  0  |  0  |  3
 	  N     |
 	*/
-	const int M = s1.size(),
-			  N = s2.size();
-	int* scores = new int[M * N];
+	const int M = static_cast<int>(s1.size()),
+			  N = static_cast<int>(s2.size());
+	CCell* scores = new CCell[M * N];
 
 	// Helper function to index into the 2d results array
 	// using row and column indexes
-	auto idx = [&](const size_t& r, const size_t& c) -> int&
+	auto idx = [&](const int& r, const int& c) -> CCell*
 	{
-		static int boundary = 0;
-		if (r < 0 || r >= M) return boundary;
-		if (c < 0 || c >= N) return boundary;
+		static CCell boundary;
+		if (r < 0 || r >= M) return &boundary;
+		if (c < 0 || c >= N) return &boundary;
 
-		return *(scores + (c * M) + r);
+		return (scores + (r * N) + c);
+	};
+
+	// Printer function for grid
+	auto print_grid = [&]() 
+	{
+		std::stringstream s;
+		for (int m = 0; m < M; ++m)
+		{
+			s << ' ' << std::string(M*5, '-') + "\n";
+			for (int n = 0; n < N; ++n)
+			{
+				s << " | " << idx(m, n)->score;
+			}
+			s << " |\n";
+		}
+		s << ' ' << std::string(M * 5, '-') + "\n";
+		std::cout << s.str() << std::endl;
 	};
 
 	// Score the alignment of the two sequences, working from top left
@@ -45,35 +74,45 @@ std::string align(const std::string& s1, std::string& s2)
 	{
 		for (int n = 0; n < N; ++n)
 		{
-			int score = s1[std::max(0, m-1)] == s2[std::max(0, n-1)] ? 1 : 0;
-			int top = idx(m, n - 1),
-				left = idx(m - 1, n),
-				topleft = idx(m - 1, n - 1) + score;
-
-			idx(m, n) = std::max(std::max(top, left), topleft);
+			// If the character in s1 and s2 at these indices are the same then +1 to the previous score (top left cell from this position)
+			// Otherwise take the max score from the prev calcs
+			CCell* target = idx(m, n);
+			if (s1[m] == s2[n])
+			{
+				CCell* topleft = idx(m - 1, n - 1);
+				target->score = topleft->score + 1;
+				target->prev = topleft;
+				target->val = s1[m];
+			}
+			else
+			{
+				CCell* left = idx(m - 1, n);
+				CCell* top  = idx(m, n - 1);
+				CCell* prev = (left->score > top->score) ? left : top;
+				target->score = prev->score;
+				target->prev = prev;
+			}
 		}
 	}
+	print_grid();
 
-	// Now follow a path from bottom right back to top left along the highest scores
-	std::string result;
-	int m = M - 1,
-		n = N - 1;
-	while (m > 0 && n > 0)
-	{
-		if (s1[m] == s2[n]) 
-			result += s1[m];
-
-		int top = idx(m, n-1),
-			left = idx(m-1, n),
-			topleft = idx(m-1, n-1);
-		if (top > left)
-			--n;
-		else if (left > top)
-			--m;
-		else
-			--m, --m;
-	}
-
+	// Follow a path from bottom right back to top left along the highest scores
+	auto extract_seq = [&]() -> std::string {
+		std::string result;
+		CCell* current = idx(M - 1, N - 1);
+		while (current->prev)
+		{
+			if (current->score > current->prev->score)
+			{
+				result += current->val;
+			}
+			current = current->prev;
+		}
+		return std::string(result.rbegin(), result.rend());
+	};
+	
+	const std::string result = extract_seq();
+	delete[] scores;
 	return result;
 }
 
