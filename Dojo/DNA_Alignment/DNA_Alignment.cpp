@@ -1,3 +1,4 @@
+#define CATCH_CONFIG_MAIN
 /*
  * A common task in DNA analysis is to align two fragments of DNA sequences against each other.
  * This lends itself to a Dynamic Programming style of solution where we are interested in
@@ -5,132 +6,12 @@
  *
  * Inspired by IBM's DP articles here: http://ibm.com/developerworks/library/j-seqalign
  */
+#include <catch.hpp>
+#include "Grid.h"
 
+static const SimilarityWeights defaultWeights;
 
-#include <string>
-#include <sstream>
-#include <iostream>
-#include <algorithm>
-#include <functional>
-#include <vector>
-
-template<class T>
-class Grid
-{
-public:
-	typedef T Value;
-
-	struct Cell
-	{
-		Cell() : score(0), prev(nullptr) {}
-
-		int score;
-		Value val;
-		Cell* prev;
-	};
-
-	Grid(const int rows, const int cols)
-		: ROWS(rows), COLS(cols)
-	{
-		cells_ = new Cell[ROWS * COLS];
-	}
-
-	Grid(const std::vector<Value>& rowData, const std::vector<Value>& colData)
-		: ROWS(rowData.size()), 
-		  COLS(colData.size()),
-		  rowData_(rowData),
-		  colData_(colData)
-	{
-		cells_ = new Cell[ROWS * COLS];
-	}
-
-	~Grid()
-	{
-		delete[] cells_;
-	}
-
-	// Initialize the grid scores
-	void init_scores(std::binary_function<int, int, int> func)
-	{
-		for (int r = 0; r < ROWS; ++r)
-			for (int c = 0; c < COLS; ++c)
-				idx(r, c).score = func(r, c);
-	}
-
-	// Helper function to index into the 2d results array
-	// using row and column indexes
-	Cell* idx(const int r, const int c)
-	{
-		static Cell boundary;
-		if (r < 0 || r >= ROWS) return &boundary;
-		if (c < 0 || c >= COLS) return &boundary;
-
-		return (cells_ + (r * COLS) + c);
-	}
-
-	// Printer function for grid
-	void print() 
-	{
-		std::stringstream s;
-		auto printLine = [&]() {
-			s << ' ' << std::string(ROWS * 5, '-') + "\n";
-		};
-
-		printLine();
-		s << "  ";
-		for (int c = 0; c < COLS; ++c)
-			s << " | " << colData_[c];
-		s << '\n';
-		printLine();
-		for (int r = 0; r < ROWS; ++r)
-		{
-			s << ' ' << rowData_[r];
-			for (int c = 0; c < COLS; ++c)
-			{
-				s << " | " << idx(r, c)->score;
-			}
-			s << " |\n";
-		}
-		printLine();
-		std::cout << s.str() << std::endl;
-	};
-
-	void fill(std::function<void(const int, const int, Cell*)> fillFunc)
-	{
-		for (int r = 0; r < ROWS; ++r)
-		{
-			for (int c = 0; c < COLS; ++c)
-			{
-				fillFunc(r, c, idx(r, c));
-			}
-		}
-	}
-
-	// Follow a path from bottom right back to top left along the highest scores
-	std::vector<Value> extract_seq() 
-	{
-		std::vector<Value> result;
-		auto current = idx(ROWS - 1, COLS - 1);
-		while (current->prev)
-		{
-			if (current->score > current->prev->score)
-			{
-				result.push_back(current->val);
-			}
-			current = current->prev;
-		}
-		return std::vector<T>(result.rbegin(), result.rend());
-	};
-	
-private:
-	const int ROWS, COLS;
-	const std::vector<Value> rowData_, colData_;
-	Cell* cells_;
-};
-
-
-
-std::string align(const std::string& s1, std::string& s2)
+Grid::StrandPair longestCommonSequence(const Grid::StrandPair& s)
 {
 	/* Form an MxN matrix where M = length of s1, N = length of s2
 	   This will hold the score as we try to align the sequences (s1, s2)
@@ -142,52 +23,97 @@ std::string align(const std::string& s1, std::string& s2)
 	  |  T  |  0  |  0  |  3
 	  N     |
 	*/
-	Grid<char> grid(std::vector<char>(s1.begin(), s1.end()), 
-				    std::vector<char>(s2.begin(), s2.end()));
-	
-	
+    Grid grid(s);
+
+	Grid::CellEditFunction zeros = [](size_t, size_t, Grid::Cell* cell) { cell->score = 0; };
+		
 	// Score the alignment of the two sequences, working from top left
 	// to bottom right accumulating the scores from previous cells
-	auto fillCell = [&](const int row, const int col, Grid<char>::Cell* target)
+    Grid::CellEditFunction scoreFunc = [&](const size_t row, const size_t col, Grid::Cell* target)
 	{
 		// If the character in s1 and s2 at these indices are the same then +1 to the previous score (top left cell from this position)
 		// Otherwise take the max score from the prev calcs
-		if (s1[row] == s2[col])
+        if (s.first[row] == s.second[col])
 		{
 			auto topleft = grid.idx(row - 1, col - 1);
-			target->score = topleft->score + 1;
 			target->prev = topleft;
-			target->val = s1[row];
 		}
 		else
 		{
 			auto left = grid.idx(row - 1, col);
 			auto top = grid.idx(row, col - 1);
 			auto prev = (left->score > top->score) ? left : top;
-			target->score = prev->score;
 			target->prev = prev;
 		}
+        int score = defaultWeights(s.first[row], s.second[col]);
+        target->score = target->prev->score + score;
 	};
 
-	grid.fill(fillCell);
-	grid.print();
-
-	auto result = grid.extract_seq();
-	return std::string(result.begin(), result.end());
+    grid.initialize_function = zeros;
+    grid.scoring_function = scoreFunc;
+    return grid.align();
 }
 
 
-int main(int argc, const char* argv[])
+/*
+ * Needleman - Wunsch algorithm
+ * For global optimal string alignment, with scoring that penalises gaps in the sequences.
+ * 
+ * Scoring:
+ * Match = +1, Mismatch = -1, Gap = -2
+ */
+Grid::StrandPair globalOptimalSequence(const Grid::StrandPair& s)
+{    
+    Grid grid(s);
+
+	// Initial scores should be -2 increments in row 0 and col 0
+	Grid::CellEditFunction spaces = [](size_t r, size_t c, Grid::Cell* cell) {
+		if (r == 0 && c != 0)
+            cell->score = c * defaultWeights.indel;
+        else if (r != 0 && c == 0)
+            cell->score = r * defaultWeights.indel;
+        else
+            cell->score = 0;
+	};
+
+    Grid::CellEditFunction scoreFunc = [&](const size_t row, const size_t col, Grid::Cell* target)
+	{
+		if (s.first[row] == s.second[col])
+		{
+			target->prev = grid.idx(row - 1, col - 1); // top left from current cell
+		}
+		else			
+		{			
+			auto left = grid.idx(row - 1, col);
+			auto top = grid.idx(row, col - 1);
+			target->prev = (left->score > top->score) ? left : top;								
+		}
+        int score = defaultWeights(s.first[row], s.second[col]);
+        target->score = target->prev->score + score;		
+	};
+
+    grid.initialize_function = spaces;
+    grid.scoring_function = scoreFunc;
+
+    return grid.align();
+}
+
+
+TEST_CASE("LongestCommonSequence", "")
 {
-	std::string strand1 = "GAGGTCAG";
-	std::string strand2 = "xGAxGxTxAG";
+    Grid::StrandPair s{ "GAGGTCAG", "GATGCTAG" };
 
-	std::string common_strand = align(strand1, strand2);
-	
-	std::cout << strand1 << std::endl;
-	std::cout << strand2 << std::endl;
-	std::cout << common_strand << std::endl;
+	s = longestCommonSequence(s);
+	REQUIRE(s.first == "GA_G__AG");
+    REQUIRE(s.second == "GA_G__AG");
+}
 
-    return 0;
+TEST_CASE("GlobalOptimal", "")
+{
+    Grid::StrandPair s{ "GCATGCU", "GATTACA" };
+
+	s = globalOptimalSequence(s);
+	REQUIRE(s.first == "GCATG_CU");
+    REQUIRE(s.second == "G_ATTACA");
 }
 
