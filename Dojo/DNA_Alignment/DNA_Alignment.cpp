@@ -1,15 +1,17 @@
-#define CATCH_CONFIG_MAIN
-/*
- * A common task in DNA analysis is to align two fragments of DNA sequences against each other.
- * This lends itself to a Dynamic Programming style of solution where we are interested in
- * identifying the longest common subsequences of DNA bases.
- *
- * Inspired by IBM's DP articles here: http://ibm.com/developerworks/library/j-seqalign
- */
-#include <catch.hpp>
-#include "Grid.h"
+#include "DNA_Alignment.h"
 
-static const SimilarityWeights defaultWeights;
+namespace
+{
+    const SimilarityWeights& defaultWeights()
+    {
+        static const SimilarityWeights w;
+        return w;
+    }
+}
+
+const std::string SimilarityWeights::baseIdx = { "AGCTU" };
+const char SimilarityWeights::space = '_';
+
 
 Grid::StrandPair longestCommonSequence(const Grid::StrandPair& s)
 {
@@ -24,6 +26,7 @@ Grid::StrandPair longestCommonSequence(const Grid::StrandPair& s)
 	  N     |
 	*/
     Grid grid(s);
+    const SimilarityWeights& weights = defaultWeights();
 
 	Grid::CellEditFunction zeros = [](size_t, size_t, Grid::Cell* cell) { cell->score = 0; };
 		
@@ -45,7 +48,7 @@ Grid::StrandPair longestCommonSequence(const Grid::StrandPair& s)
 			auto prev = (left->score > top->score) ? left : top;
 			target->prev = prev;
 		}
-        int score = defaultWeights(s.first[row], s.second[col]);
+        int score = weights(s.first[row], s.second[col]);
         target->score = target->prev->score + score;
 	};
 
@@ -65,13 +68,14 @@ Grid::StrandPair longestCommonSequence(const Grid::StrandPair& s)
 Grid::StrandPair globalOptimalSequence(const Grid::StrandPair& s)
 {    
     Grid grid(s);
+    const SimilarityWeights& weights = defaultWeights();
 
 	// Initial scores should be -2 increments in row 0 and col 0
-	Grid::CellEditFunction spaces = [](size_t r, size_t c, Grid::Cell* cell) {
+	Grid::CellEditFunction spaces = [&](size_t r, size_t c, Grid::Cell* cell) {
 		if (r == 0 && c != 0)
-            cell->score = c * defaultWeights.indel;
+            cell->score = c * weights.indel;
         else if (r != 0 && c == 0)
-            cell->score = r * defaultWeights.indel;
+            cell->score = r * weights.indel;
         else
             cell->score = 0;
 	};
@@ -88,7 +92,7 @@ Grid::StrandPair globalOptimalSequence(const Grid::StrandPair& s)
 			auto top = grid.idx(row, col - 1);
 			target->prev = (left->score > top->score) ? left : top;								
 		}
-        int score = defaultWeights(s.first[row], s.second[col]);
+        int score = weights(s.first[row], s.second[col]);
         target->score = target->prev->score + score;		
 	};
 
@@ -98,22 +102,4 @@ Grid::StrandPair globalOptimalSequence(const Grid::StrandPair& s)
     return grid.align();
 }
 
-
-TEST_CASE("LongestCommonSequence", "")
-{
-    Grid::StrandPair s{ "GAGGTCAG", "GATGCTAG" };
-
-	s = longestCommonSequence(s);
-	REQUIRE(s.first == "GA_G__AG");
-    REQUIRE(s.second == "GA_G__AG");
-}
-
-TEST_CASE("GlobalOptimal", "")
-{
-    Grid::StrandPair s{ "GCATGCU", "GATTACA" };
-
-	s = globalOptimalSequence(s);
-	REQUIRE(s.first == "GCATG_CU");
-    REQUIRE(s.second == "G_ATTACA");
-}
 

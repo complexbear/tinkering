@@ -15,8 +15,8 @@ struct SimilarityWeights
     SimilarityWeights()
     {
         // Default intialization is +1 for a match, -1 for a mismatch
-        std::memset(weights, 0, 25);
-        for (int i = 0; i < 5; ++i)
+        std::memset(weights, 0, sizeof(weights));
+        for (int i = 0; i < BASE_COUNT; ++i)
             weights[i][i] = 1;
 
         indel = -2; // score for insertion or deletion
@@ -28,7 +28,8 @@ struct SimilarityWeights
 
     // Order of indexes into the array
     // A, G, C, T, U
-    int weights[5][5];
+    static const int BASE_COUNT = 5;
+    int weights[BASE_COUNT][BASE_COUNT];
     int indel;
 
     int operator()(char c1, char c2) const
@@ -38,9 +39,6 @@ struct SimilarityWeights
         return weights[baseIdx.find(c1)][baseIdx.find(c2)];
     }
 };
-
-const std::string SimilarityWeights::baseIdx = { "AGCTU" };
-const char SimilarityWeights::space = '_';
 
 
 /*
