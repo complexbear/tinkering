@@ -42,7 +42,7 @@ Grid::StrandPair longestCommonSequence(const Grid::StrandPair& s)
              top = grid.idx(row - 1, col),
              topleft = grid.idx(row - 1, col - 1);
 
-        auto bonus = (target->val1 == target->val2) ? 1 : 0;
+        auto bonus = weights(target->val1, target->val2);
 
         if (topleft->score + bonus >= left->score && topleft->score + bonus >= top->score)
         {

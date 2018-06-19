@@ -14,12 +14,12 @@ struct SimilarityWeights
 {
     SimilarityWeights()
     {
-        // Default intialization is +1 for a match, -1 for a mismatch
-        std::memset(weights, -1, sizeof(weights));
+        // Default intialization is +1 for a match, 0 for a mismatch
+        std::memset(weights, 0, sizeof(weights));
         for (int i = 0; i < BASE_COUNT; ++i)
             weights[i][i] = 1;
 
-        indel = -2; // score for insertion or deletion
+        indel = -1; // score for insertion or deletion
     }
 
     // Used to map base char value to index in weights array
