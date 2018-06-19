@@ -15,7 +15,7 @@ struct SimilarityWeights
     SimilarityWeights()
     {
         // Default intialization is +1 for a match, -1 for a mismatch
-        std::memset(weights, 0, sizeof(weights));
+        std::memset(weights, -1, sizeof(weights));
         for (int i = 0; i < BASE_COUNT; ++i)
             weights[i][i] = 1;
 
@@ -51,31 +51,31 @@ struct SimilarityWeights
 class Grid
 {
 public:
-    typedef std::pair<std::string, std::string> StrandPair;
-    
+        
 	struct Cell
 	{
 		Cell() : score(0), prev(nullptr) {}
 
         int score;
+        char val1, val2;
         size_t row, col;
 		Cell* prev;
 	};
 
+    typedef std::pair<std::string, std::string> StrandPair;
     typedef std::function<void(const size_t, const size_t, Cell*)> CellEditFunction;
 
 	Grid(const StrandPair& strands)	
-	:   ROWS(strands.first.size() + 1),
-		COLS(strands.second.size() + 1),
-		rowData_(" " + strands.first),
-		colData_(" " + strands.second)
-	{
-		// Need 1 extra row and column to hold the intial starting scores
+	:   ROWS(strands.first.size() + 1), // Need 1 extra row and column to hold the intial starting scores
+		COLS(strands.second.size() + 1)
+	{		
 		cells_ = new Cell[ROWS * COLS];
-        // Initialize grid indices
-        for_each([](size_t r, size_t c, Cell* cell) {
+        // Initialize grid indices and cell values
+        for_each([&](size_t r, size_t c, Cell* cell) {
             cell->row = r;
             cell->col = c;
+            cell->val1 = r > 0 ? strands.first[r-1] : ' ';
+            cell->val2 = c > 0 ? strands.second[c-1] : ' ';
         });
 	}
 
@@ -113,27 +113,32 @@ public:
 	{
 		std::stringstream s;
 		auto printLine = [&]() {
-			s << ' ' << std::string(ROWS * 5, '-') + "\n";
+			s << ' ' << std::string(ROWS * 6, '-') + "\n";
 		};
 
 		printLine();
 		s << "  ";
 		for (size_t c = 0; c < COLS; ++c)
-			s << " | " << colData_[c];
+			s << " |  " << idx(1, c)->val2;
 		s << '\n';
 		printLine();
 		for (size_t r = 0; r < ROWS; ++r)
 		{
-			s << ' ' << rowData_[r];
+			s << ' ' << idx(r, 1)->val1;
 			for (size_t c = 0; c < COLS; ++c)
 			{
-				s << " | " << idx(r, c)->score;
+                const auto v = idx(r, c)->score;
+                s << " | ";
+                if (v >= 0) s << ' ';
+                s << v;
 			}
 			s << " |\n";
 		}
 		printLine();
 		std::cout << s.str() << std::endl;
 	};
+
+    
 
 	// Follow a path from bottom right back to top left along the highest scores
     StrandPair extract_seq()
@@ -144,21 +149,26 @@ public:
 		{
 			// If prev is top left then it's either a match or a mismatch
             Cell* prev = current->prev;
-            if (prev->row < current->row && prev->col < current->col)
+            /*std::cout << "C:(" << current->row << ',' << current->col << ") "  
+                << current->val1 << current->val2 << 
+                '\t' << current->score << std::endl;
+            */
+            if (current->score > prev->score) 
             {
-                strand1 += rowData_[current->row];
-                strand2 += colData_[current->col];
+                strand1 += current->val1;
+                strand2 += current->val2;
             }
             // If prev is top or left from the current cell, then it's a gap
-            else if(prev->row < current->row)
-            {
-                strand1 += '_';
-                strand2 += colData_[current->col];
-            }
             else
             {
-                strand1 += rowData_[current->row];
-                strand2 += '_';
+                if (prev->row < current->row)
+                {
+                    strand1 += '_';
+                }
+                if (prev->col < current->col)
+                {
+                    strand2 += '_';
+                }
             }
             current = prev;
 		}
@@ -180,7 +190,6 @@ private:
     }
     
 	const size_t ROWS, COLS;
-	const std::string rowData_, colData_;
 	Cell* cells_;
 };
 

@@ -34,22 +34,26 @@ Grid::StrandPair longestCommonSequence(const Grid::StrandPair& s)
 	// to bottom right accumulating the scores from previous cells
     Grid::CellEditFunction scoreFunc = [&](const size_t row, const size_t col, Grid::Cell* target)
 	{
-		// If the character in s1 and s2 at these indices are the same then +1 to the previous score (top left cell from this position)
-		// Otherwise take the max score from the prev calcs
-        if (s.first[row] == s.second[col])
-		{
-			auto topleft = grid.idx(row - 1, col - 1);
-			target->prev = topleft;
-		}
-		else
-		{
-			auto left = grid.idx(row - 1, col);
-			auto top = grid.idx(row, col - 1);
-			auto prev = (left->score > top->score) ? left : top;
-			target->prev = prev;
-		}
-        int score = weights(s.first[row], s.second[col]);
-        target->score = target->prev->score + score;
+		// Take the max score of
+        // * left cell
+        // * top cell
+        // * topleft cell, and in addition +1 to that score if the topleft cell values are equal
+        auto left = grid.idx(row, col - 1),
+             top = grid.idx(row - 1, col),
+             topleft = grid.idx(row - 1, col - 1);
+
+        auto bonus = (target->val1 == target->val2) ? 1 : 0;
+
+        if (topleft->score + bonus >= left->score && topleft->score + bonus >= top->score)
+        {
+            target->prev = topleft;
+            target->score = topleft->score + bonus;
+        }
+        else
+        {
+            target->prev = (left->score >= top->score) ? left : top;
+            target->score = target->prev->score;
+        }
 	};
 
     grid.initialize_function = zeros;
@@ -82,7 +86,7 @@ Grid::StrandPair globalOptimalSequence(const Grid::StrandPair& s)
 
     Grid::CellEditFunction scoreFunc = [&](const size_t row, const size_t col, Grid::Cell* target)
 	{
-		if (s.first[row] == s.second[col])
+		if (target->val1 == target->val2)
 		{
 			target->prev = grid.idx(row - 1, col - 1); // top left from current cell
 		}
@@ -92,7 +96,7 @@ Grid::StrandPair globalOptimalSequence(const Grid::StrandPair& s)
 			auto top = grid.idx(row, col - 1);
 			target->prev = (left->score > top->score) ? left : top;								
 		}
-        int score = weights(s.first[row], s.second[col]);
+        int score = weights(target->val1, target->val2);
         target->score = target->prev->score + score;		
 	};
 
