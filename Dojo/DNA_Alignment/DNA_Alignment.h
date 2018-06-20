@@ -8,7 +8,7 @@
 */
 #include "Grid.h"
 
-Grid::StrandPair longestCommonSequence(const Grid::StrandPair& s);
+StrandPair longestCommonSequence(const StrandPair& s);
 
 /*
 * Needleman - Wunsch algorithm
@@ -17,5 +17,5 @@ Grid::StrandPair longestCommonSequence(const Grid::StrandPair& s);
 * Scoring:
 * Match = +1, Mismatch = -1, Gap = -2
 */
-Grid::StrandPair globalOptimalSequence(const Grid::StrandPair& s);
+StrandPair globalOptimalSequence(const StrandPair& s);
 

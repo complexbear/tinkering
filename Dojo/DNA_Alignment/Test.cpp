@@ -4,7 +4,7 @@
 
 TEST_CASE("LongestCommonSequence", "")
 {
-    Grid::StrandPair s{
+    StrandPair s{
         "GCCCTAGCG",
         "GCGCAATG"            
     };
@@ -16,13 +16,13 @@ TEST_CASE("LongestCommonSequence", "")
 
 TEST_CASE("GlobalOptimal", "")
 {
-    Grid::StrandPair s{
-        "GCATGCU",
-        "GATTACA"
+    StrandPair s{
+        "GCCCTAGCG",
+        "GCGCAATG"
     };
 
     s = globalOptimalSequence(s);
-    REQUIRE(s.first == "GCATG_CU");
-    REQUIRE(s.second == "G_ATTACA");
+    REQUIRE(s.first == "GC_C_A__G");
+    REQUIRE(s.second == "GC_CA__G");
 }
 
