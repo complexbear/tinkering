@@ -57,6 +57,7 @@ void print(const Grid& grid)
             s << " | ";
             if (v >= 0) s << ' ';
             s << v;
+            if (std::abs(v) < 10) s << ' ';
         }
         s << " |\n";
     }
